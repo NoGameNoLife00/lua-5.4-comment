@@ -9,26 +9,30 @@
 
 #include "lobject.h"
 
-
-#define gnode(t,i)	(&(t)->node[i]) // 用来返回t的哈希部分的第i个节点，此处的i就是哈希部分0-size-1的整数值
-#define gval(n)		(&(n)->i_val)
-#define gnext(n)	((n)->u.next)
-
-
-#define invalidateTMcache(t)	((t)->flags = 0)
+// t 为table结构体, n为table中哈希部分的一个节点
+#define gnode(t,i)	(&(t)->node[i]) // 用来返回t的哈希部分的第i个节点，此处的i就是哈希部分0~(size-1)的整数值
+#define gval(n)		(&(n)->i_val) // gval用来返回节点中的值（是一个TValue类型）
+#define gnext(n)	((n)->u.next) // gnext用来返回此节点的下一个节点的地址（其实是一个偏移）
 
 
-/* true when 't' is using 'dummynode' as its hash part */
+#define invalidateTMcache(t)	((t)->flags = 0) // 清空table的元表
+
+
+/* true when 't' is using 'dummynode' as its hash part
+ * 如果lastfree为NULL，说明这个table没有哈希部分
+ */
 #define isdummy(t)		((t)->lastfree == NULL)
 
 
 /* allocated size for hash nodes
- * 获得哈希部分的大小
+ * 获得哈希部分分配的大小
  */
 #define allocsizenode(t)	(isdummy(t) ? 0 : sizenode(t))
 
 
-/* returns the Node, given the value of a table entry */
+/* returns the Node, given the value of a table entry
+ * 转成talbe中的Node结构
+ */
 #define nodefromval(v) 	cast(Node *, (v))
 
 

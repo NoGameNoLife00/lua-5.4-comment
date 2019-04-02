@@ -281,7 +281,7 @@ static unsigned int setlimittosize (Table *t) {
 /*
 ** "Generic" get version. (Not that generic: not valid for integers,
 ** which may be in array part, nor for floats with integral values.)
- * 找出表哈希部分中这个key对应的mp
+ * 获得key对应的val值
 */
 static const TValue *getgeneric (Table *t, const TValue *key) {
   Node *n = mainpositionTV(t, key);
@@ -776,7 +776,7 @@ TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
 ** this case, try to avoid a call to 'luaH_realasize' when key is just
 ** one more than the limit (so that it can be incremented without
 ** changing the real size of the array).
- * 获取key对应的整型
+ * 获取整型key对应的值
  * 如果这个int值小于alimit,会在数组部分找,如果alimit不等于数组部分的真实大小,
  * key仍在数组部分,这种情况下当只有key一个超过了limit,尽量避免调用luaH_realasize
  * (这样的增量没有实际改变数组部分的真实大小)
@@ -808,7 +808,7 @@ const TValue *luaH_getint (Table *t, lua_Integer key) {
 
 /*
 ** search function for short strings
- * 搜索短字符串
+ * 获取短字符串的值
 */
 const TValue *luaH_getshortstr (Table *t, TString *key) {
   Node *n = hashstr(t, key);
@@ -825,7 +825,9 @@ const TValue *luaH_getshortstr (Table *t, TString *key) {
   }
 }
 
-
+/*
+ * 获取字符串key的值
+ */
 const TValue *luaH_getstr (Table *t, TString *key) {
   if (key->tt == LUA_TSHRSTR)
     return luaH_getshortstr(t, key);
@@ -860,6 +862,7 @@ const TValue *luaH_get (Table *t, const TValue *key) {
 /*
 ** beware: when using this function you probably need to check a GC
 ** barrier and invalidate the TM cache.
+ * 查询key是否存在,不存在就创建并返回索引,存在就直接返回索引
 */
 TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
   const TValue *p = luaH_get(t, key);
@@ -868,7 +871,10 @@ TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
   else return luaH_newkey(L, t, key);
 }
 
-
+/*
+ * 把t中key的value设置为传进来的value
+ *
+ */
 void luaH_setint (lua_State *L, Table *t, lua_Integer key, TValue *value) {
   const TValue *p = luaH_getint(t, key);
   TValue *cell;
@@ -920,7 +926,9 @@ static lua_Unsigned hash_search (Table *t, lua_Unsigned j) {
   return i;
 }
 
-
+/*
+ * 数组二分查找
+ */
 static unsigned int binsearch (const TValue *array, unsigned int i,
                                                     unsigned int j) {
   while (j - i > 1u) {  /* binary search */
@@ -961,6 +969,7 @@ static unsigned int binsearch (const TValue *array, unsigned int i,
 ** to find a boundary in the hash part of the table. (In those
 ** cases, the boundary is not inside the array part, and therefore
 ** cannot be used as a new limit.)
+ * 获取表t的size
 */
 lua_Unsigned luaH_getn (Table *t) {
   unsigned int limit = t->alimit;
