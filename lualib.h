@@ -1,6 +1,7 @@
 /*
 ** $Id: lualib.h $
 ** Lua standard libraries
+ * Lua标准库
 ** See Copyright Notice in lua.h
 */
 
@@ -11,7 +12,7 @@
 #include "lua.h"
 
 
-/* version suffix for environment variable names */
+/* version suffix for environment variable names 版本号做环境变量后缀 */
 #define LUA_VERSUFFIX          "_" LUA_VERSION_MAJOR "_" LUA_VERSION_MINOR
 
 
@@ -45,7 +46,7 @@ LUAMOD_API int (luaopen_debug) (lua_State *L);
 LUAMOD_API int (luaopen_package) (lua_State *L);
 
 
-/* open all previous libraries */
+/* open all previous libraries 预加载所有标准库 */
 LUALIB_API void (luaL_openlibs) (lua_State *L);
 
 

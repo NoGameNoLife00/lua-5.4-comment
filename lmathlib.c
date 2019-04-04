@@ -1,6 +1,7 @@
 /*
 ** $Id: lmathlib.c $
 ** Standard mathematical library
+ * math库的c实现
 ** See Copyright Notice in lua.h
 */
 
@@ -25,43 +26,63 @@
 #undef PI
 #define PI	(l_mathop(3.141592653589793238462643383279502884))
 
-
+/*
+ * 求x的绝对值
+ */
 static int math_abs (lua_State *L) {
   if (lua_isinteger(L, 1)) {
     lua_Integer n = lua_tointeger(L, 1);
     if (n < 0) n = (lua_Integer)(0u - (lua_Unsigned)n);
     lua_pushinteger(L, n);
   }
-  else
+  else // 非整数就按实数处理,调用c的fabs来处理
     lua_pushnumber(L, l_mathop(fabs)(luaL_checknumber(L, 1)));
   return 1;
 }
 
+/*
+ * 求x的正切（假定参数是弧度）
+ */
 static int math_sin (lua_State *L) {
   lua_pushnumber(L, l_mathop(sin)(luaL_checknumber(L, 1)));
   return 1;
 }
 
+/*
+ * 求x的余弦（假定参数是弧度）
+ */
 static int math_cos (lua_State *L) {
   lua_pushnumber(L, l_mathop(cos)(luaL_checknumber(L, 1)));
   return 1;
 }
 
+/*
+ * 求x的正切值（假定参数是弧度）
+ */
 static int math_tan (lua_State *L) {
   lua_pushnumber(L, l_mathop(tan)(luaL_checknumber(L, 1)));
   return 1;
 }
 
+/*
+ * 求x的反正弦值（用弧度表示）
+ */
 static int math_asin (lua_State *L) {
   lua_pushnumber(L, l_mathop(asin)(luaL_checknumber(L, 1)));
   return 1;
 }
 
+/*
+ * 求x的反余弦值（用弧度表示）
+ */
 static int math_acos (lua_State *L) {
   lua_pushnumber(L, l_mathop(acos)(luaL_checknumber(L, 1)));
   return 1;
 }
 
+/*
+ * 求y/x的反正切值（用弧度表示）
+ */
 static int math_atan (lua_State *L) {
   lua_Number y = luaL_checknumber(L, 1);
   lua_Number x = luaL_optnumber(L, 2, 1);
@@ -69,13 +90,15 @@ static int math_atan (lua_State *L) {
   return 1;
 }
 
-
+/*
+ * x可以转换为一个整数,返回该整数. 否则返回 nil
+ */
 static int math_toint (lua_State *L) {
   int valid;
   lua_Integer n = lua_tointegerx(L, 1, &valid);
   if (valid)
     lua_pushinteger(L, n);
-  else {
+  else { // 转换失败, 压入nil到栈上
     luaL_checkany(L, 1);
     lua_pushnil(L);  /* value is not convertible to integer */
   }
@@ -85,16 +108,18 @@ static int math_toint (lua_State *L) {
 
 static void pushnumint (lua_State *L, lua_Number d) {
   lua_Integer n;
-  if (lua_numbertointeger(d, &n))  /* does 'd' fit in an integer? */
+  if (lua_numbertointeger(d, &n))  /* does 'd' fit in an integer? 数字是否能转成整型? */
     lua_pushinteger(L, n);  /* result is integer */
   else
     lua_pushnumber(L, d);  /* result is float */
 }
 
-
+/*
+ * 求不大于x的最大整数值
+ */
 static int math_floor (lua_State *L) {
   if (lua_isinteger(L, 1))
-    lua_settop(L, 1);  /* integer is its own floor */
+    lua_settop(L, 1);  /* integer is its own floor 整型不需要转换,直接设置栈顶为1 */
   else {
     lua_Number d = l_mathop(floor)(luaL_checknumber(L, 1));
     pushnumint(L, d);
@@ -102,7 +127,9 @@ static int math_floor (lua_State *L) {
   return 1;
 }
 
-
+/*
+ * 求不小于x的最小整数值
+ */
 static int math_ceil (lua_State *L) {
   if (lua_isinteger(L, 1))
     lua_settop(L, 1);  /* integer is its own ceil */
@@ -113,11 +140,13 @@ static int math_ceil (lua_State *L) {
   return 1;
 }
 
-
+/*
+ * 浮点数取模
+ */
 static int math_fmod (lua_State *L) {
   if (lua_isinteger(L, 1) && lua_isinteger(L, 2)) {
     lua_Integer d = lua_tointeger(L, 2);
-    if ((lua_Unsigned)d + 1u <= 1u) {  /* special cases: -1 or 0 */
+    if ((lua_Unsigned)d + 1u <= 1u) {  /* special cases: -1 or 0 处理特殊情况0和-1 */
       luaL_argcheck(L, d != 0, 2, "zero");
       lua_pushinteger(L, 0);  /* avoid overflow with 0x80000... / -1 */
     }
@@ -135,6 +164,8 @@ static int math_fmod (lua_State *L) {
 ** next function does not use 'modf', avoiding problems with 'double*'
 ** (which is not compatible with 'float*') when lua_Number is not
 ** 'double'.
+ * 分解参数X,得到它的整数和小数部分
+ * 这里不使用c的modf,是避免参数不是double指针,当Lua_Number不是double类型的时候
 */
 static int math_modf (lua_State *L) {
   if (lua_isinteger(L ,1)) {
@@ -152,13 +183,17 @@ static int math_modf (lua_State *L) {
   return 2;
 }
 
-
+/*
+ * 求x的平方根
+ */
 static int math_sqrt (lua_State *L) {
   lua_pushnumber(L, l_mathop(sqrt)(luaL_checknumber(L, 1)));
   return 1;
 }
 
-
+/*
+ * 两整数比较小于
+ */
 static int math_ult (lua_State *L) {
   lua_Integer a = luaL_checkinteger(L, 1);
   lua_Integer b = luaL_checkinteger(L, 2);
@@ -166,10 +201,13 @@ static int math_ult (lua_State *L) {
   return 1;
 }
 
+/*
+ * 求x为底的对数, 第二个参数默认为e
+ */
 static int math_log (lua_State *L) {
   lua_Number x = luaL_checknumber(L, 1);
   lua_Number res;
-  if (lua_isnoneornil(L, 2))
+  if (lua_isnoneornil(L, 2)) // 第二个参数不存在就是默认以e为底的自然对数
     res = l_mathop(log)(x);
   else {
     lua_Number base = luaL_checknumber(L, 2);
@@ -186,22 +224,33 @@ static int math_log (lua_State *L) {
   return 1;
 }
 
+/*
+ * e的x次方值
+ */
 static int math_exp (lua_State *L) {
   lua_pushnumber(L, l_mathop(exp)(luaL_checknumber(L, 1)));
   return 1;
 }
 
+/*
+ * 弧度转角度
+ */
 static int math_deg (lua_State *L) {
   lua_pushnumber(L, luaL_checknumber(L, 1) * (l_mathop(180.0) / PI));
   return 1;
 }
 
+/*
+ * 角度转弧度
+ */
 static int math_rad (lua_State *L) {
   lua_pushnumber(L, luaL_checknumber(L, 1) * (PI / l_mathop(180.0)));
   return 1;
 }
 
-
+/*
+ * 取参数中最小值
+ */
 static int math_min (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
   int imin = 1;  /* index of current minimum value */
@@ -215,7 +264,9 @@ static int math_min (lua_State *L) {
   return 1;
 }
 
-
+/*
+ * 取参数中最大值
+ */
 static int math_max (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
   int imax = 1;  /* index of current maximum value */
@@ -229,7 +280,9 @@ static int math_max (lua_State *L) {
   return 1;
 }
 
-
+/*
+ * x是整数就返回integer,是浮点数就返回float, 不是数字就返回nil
+ */
 static int math_type (lua_State *L) {
   if (lua_type(L, 1) == LUA_TNUMBER)
     lua_pushstring(L, (lua_isinteger(L, 1)) ? "integer" : "float");
@@ -245,6 +298,7 @@ static int math_type (lua_State *L) {
 /*
 ** {==================================================================
 ** Pseudo-Random Number Generator based on 'xoshiro256**'.
+ * 伪随机的新版实现，不再基于C的l_rand
 ** ===================================================================
 */
 
@@ -596,7 +650,9 @@ static void setseed (Rand64 *state, lua_Unsigned n1, lua_Unsigned n2) {
     nextrand(state);  /* discard initial values to "spread" seed */
 }
 
-
+/*
+ * 设置随机数种子
+ */
 static int math_randomseed (lua_State *L) {
   RanState *state = (RanState *)lua_touserdata(L, lua_upvalueindex(1));
   lua_Integer n1 = luaL_checkinteger(L, 1);

@@ -1,6 +1,7 @@
 /*
 ** $Id: lstring.h $
 ** String table (keep all strings handled by Lua)
+ * lua中字符串的处理
 ** See Copyright Notice in lua.h
 */
 
@@ -15,11 +16,12 @@
 /*
 ** Memory-allocation error message must be preallocated (it cannot
 ** be created after memory is exhausted)
+ * 内存不足的消息需要预先分配(当内存不足的时候再创建就已经晚了)
 */
 #define MEMERRMSG       "not enough memory"
 
 
-#define sizelstring(l)  (sizeof(union UTString) + ((l) + 1) * sizeof(char))
+#define sizelstring(l)  (sizeof(union UTString) + ((l) + 1) * sizeof(char)) //字符串实际的大小
 
 #define luaS_newliteral(L, s)	(luaS_newlstr(L, "" s, \
                                  (sizeof(s)/sizeof(char))-1))
@@ -27,12 +29,14 @@
 
 /*
 ** test whether a string is a reserved word
+ * 检查字符串是否是保留关键字
 */
 #define isreserved(s)	((s)->tt == LUA_TSHRSTR && (s)->extra > 0)
 
 
 /*
 ** equality for short strings, which are always internalized
+ * 检查短字符串是否相等
 */
 #define eqshrstr(a,b)	check_exp((a)->tt == LUA_TSHRSTR, (a) == (b))
 

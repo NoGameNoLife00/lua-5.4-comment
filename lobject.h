@@ -368,7 +368,7 @@ typedef struct TString {
   unsigned int hash;
   union {
     size_t lnglen;  /* length for long strings 长字符串的长度 */
-    struct TString *hnext;  /* linked list for hash table 全局的TString,整个链表就是字符串池 */
+    struct TString *hnext;  /* linked list for hash table 链表链接同哈希值的下一个字符串 */
   } u;
 } TString;
 
@@ -790,6 +790,7 @@ typedef struct Table {
 
 /*
 ** 'module' operation for hashing (size is always a power of 2)
+ * 哈希取模操作(size总是2的幂)
 */
 #define lmod(s,size) \
 	(check_exp((size&(size-1))==0, (cast_int((s) & ((size)-1)))))

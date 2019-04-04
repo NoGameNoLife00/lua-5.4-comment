@@ -1,6 +1,7 @@
 /*
 ** $Id: lutf8lib.c $
 ** Standard library for UTF-8 manipulation
+ * utf8标准库的实现
 ** See Copyright Notice in lua.h
 */
 
