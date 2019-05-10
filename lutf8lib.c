@@ -21,11 +21,12 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-
+//Unicode编码范围是：0-0x10FFFF，可以容纳1114112个字符，100多万
 #define MAXUNICODE	0x10FFFF
 
 /*
 ** Integer type for decoded UTF-8 values; MAXUNICODE needs 21 bits.
+ * utf-8的整型, MAXUNICODE需要21bit位
 */
 #if LUAI_BITSINT >= 21
 typedef	unsigned int utfint;
@@ -33,12 +34,37 @@ typedef	unsigned int utfint;
 typedef unsigned long utfint;
 #endif
 
-
+/* 判断p是否为多字节
+ * 0xC0的二进制表示为1100 0000
+ * 通过字符p和0xC0进行与运算可以获取p字符的最高位是否为1
+ * 而0x80的二进制为1000 0000，通过是否相等，可以判断出p是否是10开头的
+ * 在utf-8中，凡是存在以10开头的字节，就是多字节编码
+ */
 #define iscont(p)	((*(p) & 0xC0) == 0x80)
+
+//为了更清楚，下面贴上utf-8的编码规则（0-0x10FFFF）
+// Unicode/UCS-4   bit数   UTF-8      byte数   备注
+// 0000 ~007F      0~7     0XXX XXXX  1
+
+// 0080 ~07FF      8~11    110X XXXX
+//                         10XX XXXX  2
+
+// 0800 ~FFFF      12~16   1110 XXXX
+//                         10XX XXXX
+//                         10XX XXXX  3        基本定义范围：0~FFFF
+
+// 1 0000 ~1F FFFF 17~21   1111 0XXX
+//                         10XX XXXX
+//                         10XX XXXX
+//                         10XX XXXX  4        Unicode6.1定义范围：0~10 FFFF
+
+// 超出unicode的部分就不贴了
 
 
 /* from strlib */
-/* translate a relative string position: negative means back from end */
+/* translate a relative string position: negative means back from end
+ * 把字符串中的pos转换为正整数
+ */
 static lua_Integer u_posrelat (lua_Integer pos, size_t len) {
   if (pos >= 0) return pos;
   else if (0u - (size_t)pos > len) return 0;
@@ -48,6 +74,7 @@ static lua_Integer u_posrelat (lua_Integer pos, size_t len) {
 
 /*
 ** Decode one UTF-8 sequence, returning NULL if byte sequence is invalid.
+ * utf-8序列解码, 序列错误就返回NULL
 */
 static const char *utf8_decode (const char *o, utfint *val) {
   static const unsigned int limits[] = {0xFF, 0x7F, 0x7FF, 0xFFFF};
@@ -79,6 +106,7 @@ static const char *utf8_decode (const char *o, utfint *val) {
 ** utf8len(s [, i [, j]]) --> number of characters that start in the
 ** range [i,j], or nil + current position if 's' is not well formed in
 ** that interval
+ * 获取utf-8字符串长度
 */
 static int utflen (lua_State *L) {
   lua_Integer n = 0;  /* counter for the number of characters */
@@ -108,6 +136,7 @@ static int utflen (lua_State *L) {
 /*
 ** codepoint(s, [i, [j]])  -> returns codepoints for all characters
 ** that start in the range [i,j]
+ * 返回字符串s中i到j(包括)的所有字符编码
 */
 static int codepoint (lua_State *L) {
   size_t len;
@@ -146,6 +175,7 @@ static void pushutfchar (lua_State *L, int arg) {
 
 /*
 ** utfchar(n1, n2, ...)  -> char(n1)..char(n2)...
+ * 将0个或多个整数对应转换成utf-8序列,返回这些序列组成的字符串
 */
 static int utfchar (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
@@ -168,6 +198,7 @@ static int utfchar (lua_State *L) {
 /*
 ** offset(s, n, [i])  -> index where n-th character counting from
 **   position 'i' starts; 0 means character at 'i'.
+ * 返回编码n从位置i开始出现的位置
 */
 static int byteoffset (lua_State *L) {
   size_t len;
@@ -233,7 +264,10 @@ static int iter_aux (lua_State *L) {
   }
 }
 
-
+/*
+ * 返回一系列的值，可以让for p, c in utf8.codes(s) do body end
+ * 迭代出字符串s中所有的字符.p是位置（按字节数）而c是每个字符的编号
+ */
 static int iter_codes (lua_State *L) {
   luaL_checkstring(L, 1);
   lua_pushcfunction(L, iter_aux);
