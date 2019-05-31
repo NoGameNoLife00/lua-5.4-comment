@@ -1,6 +1,6 @@
 /*
 ** $Id: lbaselib.c $
-** Basic library
+** 基础库
 ** See Copyright Notice in lua.h
 */
 
@@ -20,18 +20,21 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-
+/*
+ * 接收任意数量的参数，并将它们的值打印到stdout.它用tostring函数将每个参数都转换为字符串
+ * print不能格式化输出
+ */
 static int luaB_print (lua_State *L) {
-  int n = lua_gettop(L);  /* number of arguments */
+  int n = lua_gettop(L);  /* number of arguments 参数数量 */
   int i;
-  lua_getglobal(L, "tostring");
+  lua_getglobal(L, "tostring"); // 获取全剧函数tostring并压人栈
   for (i=1; i<=n; i++) {
     const char *s;
     size_t l;
-    lua_pushvalue(L, -1);  /* function to be called */
-    lua_pushvalue(L, i);   /* value to print */
-    lua_call(L, 1, 1);
-    s = lua_tolstring(L, -1, &l);  /* get result */
+    lua_pushvalue(L, -1);  /* function to be called 把tostring副本压入栈 */
+    lua_pushvalue(L, i);   /* value to print 把需要打印的值压人栈 */
+    lua_call(L, 1, 1); // 调用tostring
+    s = lua_tolstring(L, -1, &l);  /* get result 把栈顶的lua值转成C字符串,l是返回的长度 */
     if (s == NULL)
       return luaL_error(L, "'tostring' must return a string to 'print'");
     if (i>1) lua_writestring("\t", 1);
@@ -51,19 +54,21 @@ static int luaB_warn (lua_State *L) {
 
 
 #define SPACECHARS	" \f\n\r\t\v"
-
+/*
+ * 字符串转int
+ */
 static const char *b_str2int (const char *s, int base, lua_Integer *pn) {
   lua_Unsigned n = 0;
   int neg = 0;
-  s += strspn(s, SPACECHARS);  /* skip initial spaces */
-  if (*s == '-') { s++; neg = 1; }  /* handle sign */
+  s += strspn(s, SPACECHARS);  /* skip initial spaces 跳过控制字符 */
+  if (*s == '-') { s++; neg = 1; }  /* handle sign 判断正负 */
   else if (*s == '+') s++;
-  if (!isalnum((unsigned char)*s))  /* no digit? */
+  if (!isalnum((unsigned char)*s))  /* no digit? 如果字符不是字母或者数字就直接返回NULL */
     return NULL;
   do {
     int digit = (isdigit((unsigned char)*s)) ? *s - '0'
                    : (toupper((unsigned char)*s) - 'A') + 10;
-    if (digit >= base) return NULL;  /* invalid numeral */
+    if (digit >= base) return NULL;  /* invalid numeral 超出base限制 */
     n = n * base + digit;
     s++;
   } while (isalnum((unsigned char)*s));
@@ -72,20 +77,22 @@ static const char *b_str2int (const char *s, int base, lua_Integer *pn) {
   return s;
 }
 
-
+/*
+ * 转为lua_Number类型
+ */
 static int luaB_tonumber (lua_State *L) {
-  if (lua_isnoneornil(L, 2)) {  /* standard conversion? */
-    if (lua_type(L, 1) == LUA_TNUMBER) {  /* already a number? */
-      lua_settop(L, 1);  /* yes; return it */
+  if (lua_isnoneornil(L, 2)) {  /* standard conversion? 第二个参数为nil,默认10进制 */
+    if (lua_type(L, 1) == LUA_TNUMBER) {  /* already a number? 已经是数字类型 */
+      lua_settop(L, 1);  /* yes; return it 返回本身 */
       return 1;
     }
     else {
       size_t l;
       const char *s = lua_tolstring(L, 1, &l);
       if (s != NULL && lua_stringtonumber(L, s) == l + 1)
-        return 1;  /* successful conversion to number */
+        return 1;  /* successful conversion to number 转换成功 */
       /* else not a number */
-      luaL_checkany(L, 1);  /* (but there must be some parameter) */
+      luaL_checkany(L, 1);  /* (but there must be some parameter) 转换失败,检查这个参数 */
     }
   }
   else {
@@ -93,9 +100,9 @@ static int luaB_tonumber (lua_State *L) {
     const char *s;
     lua_Integer n = 0;  /* to avoid warnings */
     lua_Integer base = luaL_checkinteger(L, 2);
-    luaL_checktype(L, 1, LUA_TSTRING);  /* no numbers as strings */
+    luaL_checktype(L, 1, LUA_TSTRING);  /* no numbers as strings 不能转成string类型*/
     s = lua_tolstring(L, 1, &l);
-    luaL_argcheck(L, 2 <= base && base <= 36, 2, "base out of range");
+    luaL_argcheck(L, 2 <= base && base <= 36, 2, "base out of range"); // base范围2到36 (字母+数字就36个)
     if (b_str2int(s, (int)base, &n) == s + l) {
       lua_pushinteger(L, n);
       return 1;
@@ -105,16 +112,18 @@ static int luaB_tonumber (lua_State *L) {
   return 1;
 }
 
-
+/*
+ *
+ */
 static int luaB_error (lua_State *L) {
-  int level = (int)luaL_optinteger(L, 2, 1);
+  int level = (int)luaL_optinteger(L, 2, 1); // 如果第二个参数是整数,返回该整数. 若该参数不存在或为nil,返回默认值(第三个参数)
   lua_settop(L, 1);
   if (lua_type(L, 1) == LUA_TSTRING && level > 0) {
     luaL_where(L, level);   /* add extra information */
     lua_pushvalue(L, 1);
-    lua_concat(L, 2);
+    lua_concat(L, 2); // 连接栈顶的 n 个值， 然后将这些值出栈，并把结果放在栈顶
   }
-  return lua_error(L);
+  return lua_error(L); // 以栈顶的值作为错误对象，抛出一个 Lua 错误。 这个函数将做一次长跳转，所以一定不会返回
 }
 
 

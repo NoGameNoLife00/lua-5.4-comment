@@ -217,12 +217,12 @@ typedef struct luaL_Stream {
 ** ===================================================================
 */
 
-/* print a string */
+/* print a string 输出C字符串到标准输出文件 */
 #if !defined(lua_writestring)
 #define lua_writestring(s,l)   fwrite((s), sizeof(char), (l), stdout)
 #endif
 
-/* print a newline and flush the output */
+/* print a newline and flush the output 换号和刷新输出缓冲区 */
 #if !defined(lua_writeline)
 #define lua_writeline()        (lua_writestring("\n", 1), fflush(stdout))
 #endif
